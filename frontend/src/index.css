@@ -1,246 +1,38 @@
-/* =====================================================
-   Global Design System — Booking Bioskop
-   ===================================================== */
+@import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* ─── CSS Variables ──────────────────────────────────── */
-:root {
-  --bg-base:       #0a0a0f;
-  --bg-surface:    #111118;
-  --bg-card:       #16161f;
-  --bg-input:      #1e1e2a;
-  --bg-hover:      #22222f;
-
-  --accent:        #7c3aed;
-  --accent-light:  #9d63f5;
-  --accent-glow:   rgba(124, 58, 237, 0.35);
-  --accent-dim:    rgba(124, 58, 237, 0.12);
-
-  --success:       #22c55e;
-  --danger:        #ef4444;
-  --warning:       #f59e0b;
-
-  --text-primary:  #f0f0ff;
-  --text-secondary:#9090aa;
-  --text-muted:    #5a5a70;
-
-  --border:        rgba(255,255,255,0.07);
-  --border-accent: rgba(124,58,237,0.4);
-
-  --radius-sm:     8px;
-  --radius-md:     12px;
-  --radius-lg:     18px;
-  --radius-xl:     24px;
-
-  --shadow-card:   0 4px 32px rgba(0,0,0,0.4);
-  --shadow-glow:   0 0 40px rgba(124,58,237,0.25);
-
-  --transition:    all 0.2s cubic-bezier(0.4,0,0.2,1);
+html {
+  scroll-behavior: smooth;
 }
-
-:root[data-theme="light"] {
-  --bg-base:       #f4f4f7;
-  --bg-surface:    #ffffff;
-  --bg-card:       #ffffff;
-  --bg-input:      #f0f0f4;
-  --bg-hover:      #e5e5ed;
-
-  --accent:        #6d28d9;
-  --accent-light:  #8b5cf6;
-  --accent-glow:   rgba(109, 40, 217, 0.15);
-  --accent-dim:    rgba(109, 40, 217, 0.1);
-
-  --text-primary:  #111118;
-  --text-secondary:#4b5563;
-  --text-muted:    #9ca3af;
-
-  --border:        rgba(0,0,0,0.08);
-  --border-accent: rgba(109,40,217,0.3);
-
-  --shadow-card:   0 4px 20px rgba(0,0,0,0.05);
-  --shadow-glow:   0 0 30px rgba(109,40,217,0.15);
-}
-
-/* ─── Reset ──────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { scroll-behavior: smooth; }
-
 body {
-  font-family: 'Inter', sans-serif;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  min-height: 100vh;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+  @apply bg-slate-50 text-slate-900 min-h-screen antialiased;
+}
+.dark body {
+  @apply bg-[#0a0a0f] text-[#f0f0ff];
 }
 
-a { color: inherit; text-decoration: none; }
-img { max-width: 100%; display: block; }
-button { cursor: pointer; font-family: inherit; border: none; outline: none; }
-input, textarea { font-family: inherit; outline: none; border: none; }
-
-/* ─── Scrollbar ──────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-base); }
-::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+.dark ::-webkit-scrollbar-thumb { @apply bg-[#22222f]; }
+::-webkit-scrollbar-thumb:hover { @apply bg-violet-500; }
 
-/* ─── Utility Classes ────────────────────────────────── */
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  box-shadow: var(--shadow-card);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: var(--transition);
-  cursor: pointer;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
-  color: #fff;
-  box-shadow: 0 4px 20px var(--accent-glow);
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px var(--accent-glow);
-}
-.btn-primary:active { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-.btn-ghost:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-accent);
-}
-
-.input-field {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  transition: var(--transition);
-}
-.input-field:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-dim);
-}
-.input-field::placeholder { color: var(--text-muted); }
-
-.label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-
-/* ─── Badge / Status ─────────────────────────────────── */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.badge-available  { background: rgba(34,197,94,0.15); color: var(--success); }
-.badge-reserved   { background: rgba(245,158,11,0.15); color: var(--warning); }
-.badge-booked     { background: rgba(239,68,68,0.15);  color: var(--danger); }
-.badge-pending    { background: rgba(245,158,11,0.15); color: var(--warning); }
-.badge-paid       { background: rgba(34,197,94,0.15);  color: var(--success); }
-
-/* ─── Spinner ────────────────────────────────────────── */
-.spinner {
-  width: 40px; height: 40px;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  margin: 0 auto;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ─── Page Animations ────────────────────────────────── */
+/* ─── Page & Modal Animations ─── */
 .page-enter {
-  animation: fadeInUp 0.35s ease;
+  animation: fadeInUp 0.3s ease;
 }
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Glass effect ───────────────────────────────────── */
-.glass {
-  background: rgba(22, 22, 31, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-}
-
-/* ─── Divider ────────────────────────────────────────── */
-.divider {
-  height: 1px;
-  background: var(--border);
-  margin: 20px 0;
-}
-
-/* ─── Toast notification ─────────────────────────────── */
-.toast-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.toast {
-  padding: 14px 20px;
-  border-radius: var(--radius-md);
-  font-size: 0.88rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: slideInRight 0.3s ease;
-  min-width: 260px;
-  max-width: 380px;
-  box-shadow: var(--shadow-card);
-}
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(40px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-.toast-success { background: #14532d; border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
-.toast-error   { background: #450a0a; border: 1px solid rgba(239,68,68,0.3);  color: #fca5a5; }
-.toast-info    { background: #1e0a4a; border: 1px solid rgba(124,58,237,0.3); color: #c4b5fd; }
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}

@@ -37,7 +37,7 @@ export interface Seat {
 }
 
 // ─── Booking Types ────────────────────────────────────
-export type BookingStatus = 'pending' | 'paid' | 'cancelled';
+export type BookingStatus = 'pending' | 'paid' | 'cancelled' | 'expired';
 
 export interface Booking {
   id: number;
