@@ -1,277 +1,111 @@
-# 🎬 Booking Bioskop Backend
+# 🎬 Aplikasi Booking Bioskop
 
-Backend production-ready untuk sistem pemesanan kursi bioskop secara real-time.
+Selamat datang di repositori pembelajaran **Booking Bioskop**! Aplikasi ini dirancang tidak hanya untuk berfungsi secara *real-time*, tetapi juga sebagai studi kasus nyata bagaimana membangun backend yang kuat (production-ready) menggunakan **Golang** (Fiber), **React** (Vite), **MySQL**, dan **Redis**.
 
-**Stack:** Go (Fiber) · MySQL · Redis (Docker) · WebSocket · JWT
-
----
-
-## 🏗️ Arsitektur
-
-```
-Frontend (Vue/React)
-      ↓
- WebSocket (real-time)   &   REST API
-      ↓
-Backend (Go + Fiber)
-      ↓
- ┌─────────────┬──────────────┐
- │    MySQL    │    Redis     │
- │ (data tetap)│ (lock kursi) │
- └─────────────┴──────────────┘
-```
+Dokumen ini ditulis secara khusus agar Anda bisa mempelajari **"logic berpikir"** dan urutan cara membuat sistem dari nol.
 
 ---
 
-## 📁 Struktur Project
+## 🏗️ 1. Arsitektur: "Clean Architecture"
+Backend di proyek ini menggunakan prinsip **Clean Architecture**. Tujuannya agar kode rapi, mudah dites, dan jika ada perubahan (misalnya ganti database MySQL ke PostgreSQL), kita tidak perlu merombak seluruh aplikasi.
 
-```
-booking-bioskop/
-├── cmd/
-│   └── main.go                    # Entry point
-├── internal/
-│   ├── config/
-│   │   ├── config.go              # App config loader
-│   │   ├── db.go                  # MySQL connection
-│   │   └── redis.go               # Redis connection
-│   ├── model/                     # Domain structs
-│   │   ├── user.go
-│   │   ├── movie.go
-│   │   ├── showtime.go
-│   │   ├── seat.go
-│   │   └── booking.go
-│   ├── repository/                # Data access layer (raw SQL)
-│   │   ├── user_repository.go
-│   │   ├── movie_repository.go    # + ShowtimeRepository
-│   │   ├── seat_repository.go
-│   │   └── booking_repository.go  # Transactional checkout
-│   ├── redis/
-│   │   └── seat_lock.go           # SetNX lock logic
-│   ├── ws/
-│   │   ├── hub.go                 # Broadcast hub
-│   │   └── client.go              # Per-client handler
-│   ├── service/                   # Business logic
-│   │   ├── user_service.go        # Bcrypt + JWT
-│   │   ├── seat_service.go        # Lock/release/load
-│   │   ├── booking_service.go     # Checkout orchestration
-│   │   └── movie_service.go       # CRUD movies/showtimes
-│   ├── handler/                   # HTTP layer
-│   │   ├── auth_handler.go
-│   │   ├── movie_handler.go
-│   │   ├── seat_handler.go
-│   │   └── booking_handler.go
-│   ├── middleware/
-│   │   └── auth.go                # JWT middleware
-│   └── router/
-│       └── router.go              # Routes registration
-├── migrations/                    # Goose SQL migrations
-│   ├── 001_create_users.sql
-│   ├── 002_create_movies.sql
-│   ├── 003_create_showtimes.sql
-│   ├── 004_create_seats.sql
-│   └── 005_create_bookings.sql
-├── docker-compose.yml             # Redis via Docker
-├── .env.example                   # Environment template
-└── go.mod
-```
+Struktur folder terbagi dalam 4 lapisan "bawang" dari yang paling dalam (Database) hingga yang paling luar (Router HTTP):
+
+1. **Layer Database & Model (`internal/model`)**
+   Layer paling inti. Hanya berisi definisi bentuk data (`struct`). Tidak ada logika pemrograman di sini. Model adalah representasi dari tabel MySQL.
+
+2. **Layer Akses Data (`internal/repository`)**
+   Layer penambang data. **HANYA** file di folder ini yang boleh menulis bahasa SQL (`SELECT`, `INSERT`, dll).
+   *Contoh:* `seat_repository.go` bertugas mengambil data kursi dari MariaDB/MySQL.
+
+3. **Layer Otak/Business Logic (`internal/service`)**
+   Layer pusat pemikiran. Layer ini tidak tahu-menahu soal "Fiber" atau "HTTP". Ia hanya berisi aturan bisnis.
+   *Contoh:* Di `booking_service.go`, otak kita berpikir: *"Sebelum checkout, cek dulu di Redis apakah kursi masih punya user ini. Jika iya, tulis ke Database. Jika sukses, hapus kunci Redis, lalu umumkan ke ruangan WebSocket."*
+
+4. **Layer Penerima Tamu (`internal/handler`)**
+   Layer komunikasi. Bertugas membaca Request dari React (JSON), memberikannya kepada *Service* (Otak), lalu membungkus hasil dari *Service* menjadi API JSON Response (contoh: 200 OK, 400 Bad Request) untuk React.
 
 ---
 
-## 🚀 Setup & Cara Menjalankan
+## 🧠 2. Logic Berpikir Fitur Utama: "Booking Kursi"
+Masalah tersulit di aplikasi bioskop adalah: **Rebutan Kursi**. Bagaimana jika 2 orang memencet tombol "Pesan" di kursi A1 pada milidetik yang sama persis?
 
-### 1. Persiapan
+Pendekatan kita menggunakan **3 Lapis Proteksi**:
 
-```bash
-# Clone / buka project
-cd "d:\Keperluan Sistem\booking-bioskop"
+### Lapis 1: Lock Sementara (Redis)
+Saat user menekan ("Klik") kursi, frontend memanggil `POST /seats/lock`.
+1. Backend memakai Redis `SET NX` (Set if Not eXists) dengan TTL (Timeout) 5 menit.
+2. Jika kursi `A1` sudah terkunci (misal di-lock oleh User B), perintah ini akan otomatis ditolak oleh Redis.
+3. User A mendapat kursi `A1`. Kita simpan di Redis: `"seat_lock:1:A1" = userID_A`.
 
-# Copy .env
-cp .env.example .env
-# Edit .env sesuai konfigurasi MySQL Anda
-```
+### Lapis 2: Real-time Update (WebSocket)
+Begitu User A sukses mengunci di Redis:
+1. Backend merespon sukses.
+2. Backend berteriak via WebSocket ke SEMUA orang yang sedang buka halaman tersebut: *"Woy, kursi A1 baru saja di-reserve!"*
+3. Di HP milik User B, kursi A1 akan langsung berubah warna kuning (secara ajaib) tanpa perlu me-refresh halaman!
 
-### 2. Jalankan Redis (Docker)
-
-```bash
-docker compose up -d
-# Verifikasi:
-docker ps   # bioskop_redis should be running
-```
-
-### 3. Buat Database MySQL
-
-```sql
-CREATE DATABASE booking_bioskop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-### 4. Jalankan Migrasi
-
-```bash
-# Install goose CLI (sekali saja)
-go install github.com/pressly/goose/v3/cmd/goose@latest
-
-# Jalankan semua migrasi
-goose -dir migrations mysql "root:yourpassword@tcp(127.0.0.1:3306)/booking_bioskop?parseTime=true" up
-```
-
-### 5. Jalankan Server
-
-```bash
-go run cmd/main.go
-# Server berjalan di http://localhost:8080
-```
+### Lapis 3: Transaksi Permanen (MySQL Database)
+Saat User A menekan **"Bayar Sekarang"** (`POST /bookings`):
+1. **Verifikasi:** Backend mencocokkan, *"Apakah kunci Redis untuk kursi A1 benar-benar milik User A?"*. (Mencegah Hacker mem-bypass Checkout).
+2. **Database Transaction:** Kita memulai `db.BeginTx()`. Ini fitur SQL supaya aktivitas Insert Data dilakukan dalam 1 paket kedap udara.
+3. Masukkan data ke tabel `bookings`.
+4. Masukkan data ke tabel `booking_seats`.
+5. Ubah tabel `seats` menjadi `status = 'booked'`.
+6. Jika di langkah ke-3, 4, atau 5 terjadi error (listrik mati, DB penuh), semuanya akan di-*Rollback* (dibatalkan) seolah tak pernah terjadi.
+7. Hapus kunci di Redis karena sudah permanen di MySQL.
+8. Berteriak lagi via WebSocket: *"Kursi A1 sekarang TERJUAL!"* (Merah).
 
 ---
 
-## 🔌 API Reference
+## 🚀 3. Urutan Pembuatan Aplikasi
+Jika Anda ingin mencoba membuat proyek sejenis, ikuti urutan "Membangun dari Dalam ke Luar" seperti ini:
 
-### Auth (Public)
-
-| Method | Endpoint | Body |
-|---|---|---|
-| POST | `/auth/register` | `{ name, email, password }` |
-| POST | `/auth/login` | `{ email, password }` → `{ token, user }` |
-
-### Movies (Public read)
-
-| Method | Endpoint | Keterangan |
-|---|---|---|
-| GET | `/movies` | List semua film |
-| GET | `/movies/:id` | Detail film |
-| GET | `/movies/:id/showtimes` | Jadwal tayang film |
-| POST | `/movies` | 🔒 Buat film baru |
-
-### Showtimes
-
-| Method | Endpoint | Keterangan |
-|---|---|---|
-| GET | `/showtimes/:id` | Detail jadwal tayang |
-| GET | `/showtimes/:id/seats` | **List kursi + status Redis** |
-| POST | `/showtimes` | 🔒 Buat jadwal tayang |
-
-### Seats 🔒 (Perlu JWT)
-
-| Method | Endpoint | Body |
-|---|---|---|
-| POST | `/seats/lock` | `{ seat_id, showtime_id }` |
-| POST | `/seats/release` | `{ seat_id, showtime_id }` |
-
-> ⚠️ `user_id` selalu diambil dari JWT token, **tidak** dari request body.
-
-### Bookings 🔒 (Perlu JWT)
-
-| Method | Endpoint | Body |
-|---|---|---|
-| POST | `/bookings` | `{ showtime_id, seat_ids: [], total_price }` |
-| GET | `/bookings/:id` | Detail booking milik user |
-
-### WebSocket
-
-```
-ws://localhost:8080/ws
-```
-
-Events yang diterima client:
-```json
-{ "type": "seat_reserved", "seat_id": 1, "status": "reserved" }
-{ "type": "seat_released", "seat_id": 1, "status": "available" }
-{ "type": "seat_booked",   "seat_id": 1, "status": "booked" }
-```
+1. **Desain Database (`migrations/`)**
+   Pikirkan relasi datanya. *Movies punya banyak Showtimes. Showtimes punya banyak Seats.* Buat skema SQL-nya.
+2. **Setup Koneksi (`internal/config/`)**
+   Buat kode untuk membuka koneksi MySQL dan Redis yang membaca rahasia dari `.env`.
+3. **Bikin Repositories (`internal/repository/`)**
+   Tulis kueri-kueri rakitan (Mencari email user, Insert booking). Uji coba pastikan tidak salah ketik (typo) SQL.
+4. **Bikin Services (`internal/service/`)**
+   Lakukan validasi data. Misalnya, cek `bcrypt` saat login JWT. Inject repository ke dalam service.
+5. **Bikin Handlers (`internal/handler/`)**
+   Ambil `fiber.Ctx`. Parse data JSON, lalu panggil Service.
+6. **Buka Pintunya (`internal/router/` & `cmd/main.go`)**
+   Sambungkan alamat URL (seperti `/movies`) ke Handlers terkait.
+7. **Frontend (React)**
+   Buat desain antarmuka penggunanya, dan gunakan fungsi seperti *Axios/fetch* untuk berbicara dengan URL di atas.
 
 ---
 
-## ⚡ Redis Seat Lock Pattern
-
-```
-Key:   seat_lock:{showtime_id}:{seat_id}
-Value: {user_id}
-TTL:   5 menit (300 detik)
-
-Contoh: seat_lock:10:25 = "3"
-→ Showtime 10, Seat 25, di-lock oleh User 3
-```
-
-**Lock menggunakan `SET NX`** — atomic, tidak bisa race condition.
+## 👮 4. Sistem Role (JWT Middleware)
+Untuk membedakan Orang Biasa dan Admin:
+1. Saat user berhasil login, server memasukkan **Role** ("user" atau "admin") ke dalam tiket rahasia bernama **JWT (JSON Web Token)**.
+2. Tiket JWT ini ditaruh di saku Frontend.
+3. Setiap kali React meminta akses (Misal: memanggil API Tambah Film), React wajib menyodorkan tiket JWT tersebut di Header (`Authorization: Bearer <token>`).
+4. Di pintu backend, satpam kita bernama **`AuthRequired`** membongkar isi tiket JWT-nya.
+5. Jika halamannya bersifat Rahasia Admin, berlapis dengan satpam kedua: **`AdminRequired`** yang akan menolak masuk jika isi tiketnya bukan `"admin"`.
 
 ---
 
-## 🔄 Flow Checkout (Critical Path)
+## 📦 5. Cara Menjalankan Project
 
-```
-1. POST /seats/lock (untuk setiap kursi yang dipilih)
-   → Redis SetNX atomic per seat
+1. Pastikan Anda punya MySQL Server, Redis (via Docker: `docker compose up -d`), dan Go Terinstall.
+2. Buat database: `CREATE DATABASE booking_bioskop;`
+3. Aktifkan tabel DB otomatis menggunakan Goose CLI atau import manual melalui folder `migrations/`.
+4. Sesuaikan credential di `.env`.
+5. Buka 2 terminal:
+   - Terminal 1 (Backend Backend): 
+     ```bash
+     go mod tidy
+     go run cmd/main.go
+     ```
+   - Terminal 2 (Frontend React):
+     ```bash
+     cd frontend
+     npm install
+     npm run dev
+     ```
+6. Buka browser: `http://localhost:5173`.
+7. **Untuk Coba Admin:** Buka MySQL / HeidiSQL, ubah role di tabel Anda (klik manual): `UPDATE users SET role = 'admin' ...` lalu re-login di browser.
 
-2. POST /bookings (checkout)
-   → Validasi semua lock milik user ini di Redis
-   → BEGIN DB transaction
-      → INSERT INTO bookings
-      → INSERT INTO booking_seats (per seat)
-      → UPDATE seats SET status = 'booked' (per seat)
-   → COMMIT
-   → DEL semua Redis lock
-   → Broadcast seat_booked via WebSocket
-```
-
----
-
-## ⚠️ Edge Cases yang Di-handle
-
-| Kasus | Solusi |
-|---|---|
-| User close tab tiba-tiba | Redis TTL 5 menit auto-release |
-| Double click lock | `SET NX` atomic — hanya 1 yang berhasil |
-| Server crash | Redis TTL tetap berjalan independent |
-| Race condition checkout | Validasi Redis lock sebelum DB transaksi |
-| Banyak user bersamaan | WebSocket broadcast ke semua client |
-| User akses booking orang lain | Ownership check di handler |
-
----
-
-## 🎯 Environment Variables
-
-| Variable | Default | Keterangan |
-|---|---|---|
-| `APP_PORT` | `8080` | Port server |
-| `DB_HOST` | `127.0.0.1` | MySQL host |
-| `DB_PORT` | `3306` | MySQL port |
-| `DB_USER` | `root` | MySQL user |
-| `DB_PASSWORD` | _(kosong)_ | MySQL password |
-| `DB_NAME` | `booking_bioskop` | Database name |
-| `REDIS_ADDR` | `127.0.0.1:6379` | Redis address |
-| `JWT_SECRET` | `change-me` | **Wajib diganti di production** |
-| `JWT_EXPIRE_HOURS` | `24` | Durasi token JWT |
-
----
-
-## 🚀 Cara Extend (Payment Gateway)
-
-Payment gateway (contoh: Midtrans) dapat ditambahkan dengan:
-
-1. **Tambah field** `payment_url` dan `payment_token` di tabel `bookings`
-2. **Buat** `internal/service/payment_service.go` dengan integrasi Midtrans SDK
-3. **Buat** `POST /bookings/:id/pay` yang memanggil payment service
-4. **Webhook** `POST /payments/webhook` untuk update status `pending → paid`
-5. **Update** booking status via `PATCH` dan emit WebSocket event `booking_paid`
-
-Tambahkan migration baru:
-```sql
--- +goose Up
-ALTER TABLE bookings
-  ADD COLUMN payment_url   VARCHAR(500) NULL,
-  ADD COLUMN payment_token VARCHAR(255) NULL;
-```
-
----
-
-## 📦 Dependencies
-
-| Package | Fungsi |
-|---|---|
-| `gofiber/fiber/v2` | HTTP Framework |
-| `gofiber/websocket/v2` | WebSocket |
-| `go-sql-driver/mysql` | MySQL Driver |
-| `redis/go-redis/v9` | Redis Client |
-| `golang-jwt/jwt/v5` | JWT Auth |
-| `golang.org/x/crypto` | Bcrypt |
-| `joho/godotenv` | Load .env |
-| `pressly/goose/v3` | DB Migration |
+Selamat belajar! Kode ini ditulis setransparan mungkin. Baca dari `cmd/main.go` pelan-pelan ke bawah, dan Anda akan menguasai seninya! 🍿
