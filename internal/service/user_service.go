@@ -37,10 +37,16 @@ func (s *UserService) Register(ctx context.Context, req model.RegisterRequest) (
 		return nil, err
 	}
 
+	role := req.Role
+	if role == "" {
+		role = "user"
+	}
+
 	user := &model.User{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: string(hashed),
+		Role:     role,
 	}
 	id, err := s.repo.Create(ctx, user)
 	if err != nil {
@@ -63,7 +69,7 @@ func (s *UserService) Login(ctx context.Context, req model.LoginRequest) (*model
 		return nil, errors.New("invalid email or password")
 	}
 
-	token, err := generateJWT(user.ID)
+	token, err := generateJWT(user.ID, user.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +77,10 @@ func (s *UserService) Login(ctx context.Context, req model.LoginRequest) (*model
 	return &model.LoginResponse{Token: token, User: *user}, nil
 }
 
-func generateJWT(userID int64) (string, error) {
+func generateJWT(userID int64, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
+		"role":    role,
 		"exp":     time.Now().Add(time.Duration(config.App.JWTExpireHours) * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

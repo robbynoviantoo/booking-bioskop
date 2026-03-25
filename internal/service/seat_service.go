@@ -116,3 +116,14 @@ func (s *SeatService) ValidateUserLocks(ctx context.Context, showtimeID, userID 
 	}
 	return nil
 }
+
+// CreateSeats generates seats for a showtime using row letters and a count per row.
+func (s *SeatService) CreateSeats(ctx context.Context, showtimeID int64, rows []string, seatsPerRow int) error {
+	var seatNumbers []string
+	for _, row := range rows {
+		for col := 1; col <= seatsPerRow; col++ {
+			seatNumbers = append(seatNumbers, fmt.Sprintf("%s%d", row, col))
+		}
+	}
+	return s.seatRepo.CreateSeats(ctx, showtimeID, seatNumbers)
+}

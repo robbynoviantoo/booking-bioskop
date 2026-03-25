@@ -3,6 +3,8 @@ package handler
 import (
 	"strconv"
 
+	"time"
+
 	"booking-bioskop/internal/model"
 	"booking-bioskop/internal/service"
 
@@ -11,10 +13,11 @@ import (
 
 type BookingHandler struct {
 	bookingSvc *service.BookingService
+	movieSvc   *service.MovieService
 }
 
-func NewBookingHandler(bookingSvc *service.BookingService) *BookingHandler {
-	return &BookingHandler{bookingSvc: bookingSvc}
+func NewBookingHandler(bookingSvc *service.BookingService, movieSvc *service.MovieService) *BookingHandler {
+	return &BookingHandler{bookingSvc: bookingSvc, movieSvc: movieSvc}
 }
 
 // POST /bookings  (protected) - Checkout
@@ -27,6 +30,15 @@ func (h *BookingHandler) Checkout(c *fiber.Ctx) error {
 	}
 	if req.ShowtimeID == 0 || len(req.SeatIDs) == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "showtime_id and seat_ids are required"})
+	}
+
+	// Validate showtime hasn't passed
+	st, err := h.movieSvc.GetShowtimeByID(c.Context(), req.ShowtimeID)
+	if err != nil || st == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "showtime not found"})
+	}
+	if st.ShowTime.Before(time.Now()) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cannot book past showtimes"})
 	}
 
 	booking, err := h.bookingSvc.Checkout(c.Context(), userID, req)
@@ -55,4 +67,17 @@ func (h *BookingHandler) GetByID(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(booking)
+}
+
+// GET /bookings  (protected) - list user's own bookings
+func (h *BookingHandler) GetUserBookings(c *fiber.Ctx) error {
+	userID := c.Locals("user_id").(int64)
+	bookings, err := h.bookingSvc.GetUserBookings(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	if bookings == nil {
+		bookings = []model.Booking{}
+	}
+	return c.JSON(bookings)
 }

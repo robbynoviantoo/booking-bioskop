@@ -62,3 +62,7 @@ func (s *BookingService) Checkout(ctx context.Context, userID int64, req model.C
 func (s *BookingService) GetByID(ctx context.Context, id int64) (*model.Booking, error) {
 	return s.bookingRepo.FindByID(ctx, id)
 }
+
+func (s *BookingService) GetUserBookings(ctx context.Context, userID int64) ([]model.Booking, error) {
+	return s.bookingRepo.FindByUser(ctx, userID)
+}

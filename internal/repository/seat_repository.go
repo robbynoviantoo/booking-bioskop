@@ -56,7 +56,23 @@ func (r *SeatRepository) MarkBooked(ctx context.Context, tx *sql.Tx, seatID int6
 	return err
 }
 
-// FindByIDs returns multiple seats by their IDs.
+// CreateSeats bulk-inserts seats for a given showtime.
+func (r *SeatRepository) CreateSeats(ctx context.Context, showtimeID int64, seatNumbers []string) error {
+	if len(seatNumbers) == 0 {
+		return nil
+	}
+	query := `INSERT INTO seats (showtime_id, seat_number) VALUES `
+	args := make([]interface{}, 0, len(seatNumbers)*2)
+	for i, sn := range seatNumbers {
+		if i > 0 {
+			query += ","
+		}
+		query += "(?,?)"
+		args = append(args, showtimeID, sn)
+	}
+	_, err := r.db.ExecContext(ctx, query, args...)
+	return err
+}
 func (r *SeatRepository) FindByIDs(ctx context.Context, ids []int64) ([]model.Seat, error) {
 	if len(ids) == 0 {
 		return nil, nil

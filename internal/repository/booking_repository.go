@@ -47,6 +47,27 @@ func (r *BookingRepository) FindByID(ctx context.Context, id int64) (*model.Book
 	return b, rows.Err()
 }
 
+// FindByUser returns all bookings for a given user (without seat details).
+func (r *BookingRepository) FindByUser(ctx context.Context, userID int64) ([]model.Booking, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, user_id, showtime_id, total_price, status, created_at FROM bookings WHERE user_id = ? ORDER BY created_at DESC`,
+		userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []model.Booking
+	for rows.Next() {
+		var b model.Booking
+		if err := rows.Scan(&b.ID, &b.UserID, &b.ShowtimeID, &b.TotalPrice, &b.Status, &b.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, b)
+	}
+	return list, rows.Err()
+}
+
 // Checkout creates a booking inside a DB transaction.
 // Steps: insert booking → insert booking_seats → update seat status
 func (r *BookingRepository) Checkout(ctx context.Context, userID, showtimeID int64, seatIDs []int64, totalPrice int64) (*model.Booking, error) {

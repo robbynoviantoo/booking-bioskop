@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Wifi, WifiOff, ShoppingCart, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Wifi, WifiOff, ShoppingCart } from 'lucide-react';
 import api from '../lib/api';
 import type { Seat, Showtime, WsEvent, SeatStatus } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,7 +32,7 @@ export default function SeatPickerPage() {
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Fetch showtime + seats
+  // Fetch showtime + seats, and restore any seats already locked by this user
   const fetchSeats = useCallback(async () => {
     try {
       const [stRes, sRes] = await Promise.all([
@@ -40,13 +40,24 @@ export default function SeatPickerPage() {
         api.get(`/showtimes/${showtimeId}/seats`),
       ]);
       setShowtime(stRes.data);
-      setSeats(sRes.data || []);
+      const fetchedSeats: Seat[] = sRes.data || [];
+      setSeats(fetchedSeats);
+
+      // ✅ Restore checkout drawer: pre-select seats already locked by current user
+      if (user) {
+        const myLockedIds = fetchedSeats
+          .filter(s => s.status === 'reserved' && s.locked_by === user.id)
+          .map(s => s.id);
+        if (myLockedIds.length > 0) {
+          setSelected(new Set(myLockedIds));
+        }
+      }
     } catch {
       toast('error', 'Gagal memuat data kursi');
     } finally {
       setLoading(false);
     }
-  }, [showtimeId]);
+  }, [showtimeId, user]);
 
   useEffect(() => { fetchSeats(); }, [fetchSeats]);
 
@@ -75,8 +86,12 @@ export default function SeatPickerPage() {
     return () => ws.close();
   }, []);
 
-  // Group seats by row (A1 → A, B1 → B, ...)
-  const rows = seats.reduce<Record<string, Seat[]>>((acc, seat) => {
+  // Sort naturally (A1, A2, A10) and group by row (A1 → A, B1 → B, ...)
+  const sortedSeats = [...seats].sort((a, b) =>
+    a.seat_number.localeCompare(b.seat_number, undefined, { numeric: true, sensitivity: 'base' })
+  );
+
+  const rows = sortedSeats.reduce<Record<string, Seat[]>>((acc, seat) => {
     const row = seat.seat_number.replace(/\d/g, '');
     acc[row] = [...(acc[row] || []), seat];
     return acc;
@@ -122,6 +137,8 @@ export default function SeatPickerPage() {
     }
   };
 
+  const isPast = showtime ? new Date(showtime.show_time) < new Date() : false;
+
   if (loading) return <div style={{ textAlign: 'center', padding: '120px 0' }}><div className="spinner" /></div>;
 
   return (
@@ -147,6 +164,12 @@ export default function SeatPickerPage() {
           <div className="screen">LAYAR</div>
         </div>
 
+        {isPast && (
+          <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', borderRadius: '8px', textAlign: 'center', marginBottom: '24px', fontWeight: 'bold' }}>
+            ⚠️ Waktu tayang film ini sudah lewat. Tidak bisa memesan tiket.
+          </div>
+        )}
+
         {/* Seat Map */}
         <div className="seat-map">
           {Object.entries(rows).map(([row, rowSeats]) => (
@@ -158,7 +181,7 @@ export default function SeatPickerPage() {
                     key={seat.id}
                     className={`seat-btn seat-${seat.status} ${selected.has(seat.id) ? 'seat-selected' : ''}`}
                     onClick={() => handleSeatClick(seat)}
-                    disabled={seat.status === 'booked'}
+                    disabled={seat.status === 'booked' || isPast}
                     title={`Kursi ${seat.seat_number} — ${seat.status}`}
                   >
                     {seat.seat_number.replace(/[A-Z]/g, '')}
@@ -195,7 +218,7 @@ export default function SeatPickerPage() {
             <button
               className="btn btn-primary"
               onClick={handleCheckout}
-              disabled={checkingOut}
+              disabled={checkingOut || isPast}
               style={{ minWidth: 150 }}
             >
               {checkingOut ? 'Memproses...' : 'Bayar Sekarang'}

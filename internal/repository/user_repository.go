@@ -18,8 +18,8 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
 	user := &model.User{}
 	row := r.db.QueryRowContext(ctx,
-		`SELECT id, name, email, password, created_at FROM users WHERE email = ?`, email)
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.CreatedAt)
+		`SELECT id, name, email, password, role, created_at FROM users WHERE email = ?`, email)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role, &user.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -28,8 +28,8 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.
 
 func (r *UserRepository) Create(ctx context.Context, user *model.User) (int64, error) {
 	res, err := r.db.ExecContext(ctx,
-		`INSERT INTO users (name, email, password) VALUES (?, ?, ?)`,
-		user.Name, user.Email, user.Password,
+		`INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`,
+		user.Name, user.Email, user.Password, user.Role,
 	)
 	if err != nil {
 		return 0, err

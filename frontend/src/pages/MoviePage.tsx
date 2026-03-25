@@ -74,24 +74,36 @@ export default function MoviePage() {
             </div>
           ) : (
             <div className="showtime-list">
-              {showtimes.map((st) => (
-                <Link to={`/showtimes/${st.id}/seats`} key={st.id} className="showtime-card card">
-                  <div className="showtime-card-left">
-                    <div className="showtime-time">
-                      <Clock size={18} style={{ color: 'var(--accent-light)' }} />
-                      {formatTime(st.show_time)}
+              {showtimes.map((st) => {
+                const isPast = new Date(st.show_time) < new Date();
+                return (
+                  <Link 
+                    to={isPast ? "#" : `/showtimes/${st.id}/seats`} 
+                    key={st.id} 
+                    className={`showtime-card card ${isPast ? 'disabled' : ''}`}
+                    style={isPast ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+                  >
+                    <div className="showtime-card-left">
+                      <div className="showtime-time">
+                        <Clock size={18} style={{ color: isPast ? 'var(--text-muted)' : 'var(--accent-light)' }} />
+                        {formatTime(st.show_time)}
+                      </div>
+                      <div className="showtime-date">
+                        <Calendar size={14} />
+                        {formatDate(st.show_time)}
+                      </div>
                     </div>
-                    <div className="showtime-date">
-                      <Calendar size={14} />
-                      {formatDate(st.show_time)}
+                    <div className="showtime-card-right">
+                      {isPast ? (
+                        <span className="badge badge-booked">Lewat</span>
+                      ) : (
+                        <span className="badge badge-available">Tersedia</span>
+                      )}
+                      <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
                     </div>
-                  </div>
-                  <div className="showtime-card-right">
-                    <span className="badge badge-available">Tersedia</span>
-                    <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

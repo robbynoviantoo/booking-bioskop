@@ -46,8 +46,8 @@ func main() {
 	// ─── Handlers ───────────────────────────────────────────────────────────────
 	authH    := handler.NewAuthHandler(userSvc)
 	movieH   := handler.NewMovieHandler(movieSvc)
-	seatH    := handler.NewSeatHandler(seatSvc)
-	bookingH := handler.NewBookingHandler(bookingSvc)
+	seatH    := handler.NewSeatHandler(seatSvc, movieSvc)
+	bookingH := handler.NewBookingHandler(bookingSvc, movieSvc)
 
 	// ─── Fiber App ───────────────────────────────────────────────────────────────
 	app := fiber.New(fiber.Config{

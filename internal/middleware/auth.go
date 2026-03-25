@@ -39,7 +39,26 @@ func AuthRequired() fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user_id not found in token"})
 		}
 
+		role, ok := claims["role"].(string)
+		if !ok {
+			// default backward compatibility
+			role = "user"
+		}
+
 		c.Locals("user_id", int64(userID))
+		c.Locals("role", role)
+		return c.Next()
+	}
+}
+
+// AdminRequired checks if the authenticated user has the 'admin' role.
+// Must be used after AuthRequired middleware.
+func AdminRequired() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		role, ok := c.Locals("role").(string)
+		if !ok || role != "admin" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "admin access required"})
+		}
 		return c.Next()
 	}
 }

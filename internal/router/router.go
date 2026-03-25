@@ -42,13 +42,13 @@ func Setup(app *fiber.App, d Deps) {
 	movies.Get("/", d.MovieHandler.GetAll)
 	movies.Get("/:id", d.MovieHandler.GetByID)
 	movies.Get("/:id/showtimes", d.MovieHandler.GetShowtimes)
-	movies.Post("/", middleware.AuthRequired(), d.MovieHandler.Create)
+	movies.Post("/", middleware.AuthRequired(), middleware.AdminRequired(), d.MovieHandler.Create)
 
 	// ── Showtimes ─────────────────────────────────────────────────────────────
 	showtimes := app.Group("/showtimes")
 	showtimes.Get("/:id", d.MovieHandler.GetShowtimeByID)
 	showtimes.Get("/:id/seats", d.SeatHandler.GetSeats)
-	showtimes.Post("/", middleware.AuthRequired(), d.MovieHandler.CreateShowtime)
+	showtimes.Post("/", middleware.AuthRequired(), middleware.AdminRequired(), d.MovieHandler.CreateShowtime)
 
 	// ── Seats (protected) ─────────────────────────────────────────────────────
 	seats := app.Group("/seats", middleware.AuthRequired())
@@ -57,6 +57,10 @@ func Setup(app *fiber.App, d Deps) {
 
 	// ── Bookings (protected) ──────────────────────────────────────────────────
 	bookings := app.Group("/bookings", middleware.AuthRequired())
+	bookings.Get("/", d.BookingHandler.GetUserBookings)
 	bookings.Post("/", d.BookingHandler.Checkout)
 	bookings.Get("/:id", d.BookingHandler.GetByID)
+
+	// ── Seat creation (protected, admin) ──────────────────────────────────────
+	showtimes.Post("/:id/seats", middleware.AuthRequired(), middleware.AdminRequired(), d.SeatHandler.CreateSeats)
 }

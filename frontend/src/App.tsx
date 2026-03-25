@@ -9,6 +9,8 @@ import RegisterPage from './pages/RegisterPage';
 import MoviePage from './pages/MoviePage';
 import SeatPickerPage from './pages/SeatPickerPage';
 import BookingPage from './pages/BookingPage';
+import MyBookingsPage from './pages/MyBookingsPage';
+import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -25,7 +27,9 @@ function AppRoutes() {
         <Route path="/register"            element={<RegisterPage />} />
         <Route path="/movies/:id"          element={<MoviePage />} />
         <Route path="/showtimes/:id/seats" element={<SeatPickerPage />} />
+        <Route path="/bookings"            element={<ProtectedRoute><MyBookingsPage /></ProtectedRoute>} />
         <Route path="/bookings/:id"        element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
+        <Route path="/admin"               element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="*"                    element={<Navigate to="/" />} />
       </Routes>
     </>
