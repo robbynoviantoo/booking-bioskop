@@ -234,7 +234,7 @@ export default function SeatPickerPage() {
         </div>
 
         {/* Screen */}
-        <div className="flex justify-center mb-14 relative">
+        <div className="flex justify-center mb-14  relative">
           <div className="w-[min(500px,90%)] h-[10px] rounded bg-gradient-to-r from-transparent via-violet-600 to-transparent shadow-[0_0_30px_rgba(124,58,237,0.35),0_0_80px_rgba(124,58,237,0.15)] relative">
             <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-[0.7rem] font-bold tracking-widest text-slate-500 dark:text-[#5a5a70]">
               LAYAR
@@ -259,7 +259,7 @@ export default function SeatPickerPage() {
                 <div className="flex gap-3 flex-nowrap">
                   {rowSeats.map((seat) => {
                     let baseClass =
-                      "w-[42px] h-[42px] rounded-t-xl rounded-b-md text-[0.75rem] font-bold transition-all border-2 relative select-none flex items-center justify-center shrink-0 ";
+                      "w-[42px] h-[42px] rounded-t-xl rounded-b-md text-[0.75rem] font-bold transition-all border-2 relative select-none mt-2 flex items-center justify-center shrink-0 ";
 
                     // seat-available logic
                     if (seat.status === "available" && !selected.has(seat.id)) {
