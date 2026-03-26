@@ -11,6 +11,7 @@ export default function AdminPage() {
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [movieTitle, setMovieTitle] = useState("");
+  const [movieImage, setMovieImage] = useState<File | null>(null);
   const [savingMovie, setSavingMovie] = useState(false);
 
   const [showtimes, setShowtimes] = useState<Showtime[]>([]);
@@ -44,9 +45,16 @@ export default function AdminPage() {
     if (!movieTitle.trim()) return;
     setSavingMovie(true);
     try {
-      await api.post("/movies", { title: movieTitle });
+      const formData = new FormData();
+      formData.append("title", movieTitle);
+      if (movieImage) formData.append("image", movieImage);
+
+      await api.post("/movies", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       toast("success", `Film "${movieTitle}" berhasil ditambahkan!`);
       setMovieTitle("");
+      setMovieImage(null);
       loadMovies();
     } catch (err: any) {
       toast("error", err.response?.data?.error || "Gagal tambah film");
@@ -141,6 +149,17 @@ export default function AdminPage() {
                   value={movieTitle}
                   onChange={(e) => setMovieTitle(e.target.value)}
                   required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="block text-[0.85rem] font-medium text-slate-600 dark:text-[#9090aa]">
+                  Poster / Gambar Film
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="w-full px-4 py-2 bg-slate-100 dark:bg-[#1e1e2a] border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white text-sm transition-all focus:border-violet-600 focus:ring-3 focus:ring-violet-600/20 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-violet-600 file:text-white hover:file:bg-violet-700 cursor-pointer"
+                  onChange={(e) => setMovieImage(e.target.files?.[0] || null)}
                 />
               </div>
               <button

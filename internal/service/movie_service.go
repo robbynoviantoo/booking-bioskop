@@ -32,12 +32,12 @@ func (s *MovieService) GetByID(ctx context.Context, id int64) (*model.Movie, err
 	return m, nil
 }
 
-func (s *MovieService) Create(ctx context.Context, title string) (*model.Movie, error) {
-	id, err := s.movieRepo.Create(ctx, title)
+func (s *MovieService) Create(ctx context.Context, title string, imgURL string) (*model.Movie, error) {
+	id, err := s.movieRepo.Create(ctx, title, imgURL)
 	if err != nil {
 		return nil, err
 	}
-	return &model.Movie{ID: id, Title: title}, nil
+	return &model.Movie{ID: id, Title: title, ImgURL: imgURL}, nil
 }
 
 func (s *MovieService) GetShowtimes(ctx context.Context, movieID int64) ([]model.Showtime, error) {

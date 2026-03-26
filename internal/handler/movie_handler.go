@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	"booking-bioskop/internal/model"
 	"booking-bioskop/internal/service"
@@ -41,11 +43,23 @@ func (h *MovieHandler) GetByID(c *fiber.Ctx) error {
 
 // POST /movies  (protected)
 func (h *MovieHandler) Create(c *fiber.Ctx) error {
-	var req model.CreateMovieRequest
-	if err := c.BodyParser(&req); err != nil || req.Title == "" {
+	title := c.FormValue("title")
+	if title == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "title is required"})
 	}
-	movie, err := h.movieSvc.Create(c.Context(), req.Title)
+
+	var imgURL string
+	file, err := c.FormFile("image")
+	if err == nil {
+		filename := fmt.Sprintf("%d_%s", time.Now().Unix(), file.Filename)
+		// Simpan di folder lokal
+		if errSave := c.SaveFile(file, fmt.Sprintf("./uploads/movies/%s", filename)); errSave != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save image"})
+		}
+		imgURL = "/uploads/movies/" + filename
+	}
+
+	movie, err := h.movieSvc.Create(c.Context(), title, imgURL)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}

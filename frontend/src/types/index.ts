@@ -16,6 +16,7 @@ export interface LoginResponse {
 export interface Movie {
   id: number;
   title: string;
+  img_url: string;
 }
 
 export interface Showtime {

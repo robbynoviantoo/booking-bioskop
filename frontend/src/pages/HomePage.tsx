@@ -94,17 +94,31 @@ export default function HomePage() {
                   key={movie.id}
                   className="block rounded-2xl overflow-hidden border bg-white dark:bg-[#16161f] border-black/5 dark:border-white/10 transition-all duration-300 hover:border-violet-300 dark:hover:border-violet-600/40 hover:-translate-y-1 hover:shadow-xl dark:hover:shadow-[0_0_30px_rgba(124,58,237,0.15)] group"
                 >
-                  <div
-                    className="h-[200px] flex items-center justify-center text-white relative"
-                    style={{
-                      background: `linear-gradient(135deg, ${c1}, ${c2})`,
-                    }}
-                  >
-                    <Film
-                      size={40}
-                      className="opacity-40 group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
+                  <div className="h-[280px] w-full relative overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-[#1e1e2a]">
+                    {movie.img_url ? (
+                      <img
+                        src={`http://localhost:8080${movie.img_url}`}
+                        alt={movie.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "";
+                          (e.target as HTMLImageElement).className = "hidden";
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center text-white"
+                        style={{
+                          background: `linear-gradient(135deg, ${c1}, ${c2})`,
+                        }}
+                      >
+                        <Film
+                          size={48}
+                          className="opacity-40 group-hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
                   </div>
                   <div className="p-5">
                     <h3 className="line-clamp-2 text-base font-bold leading-tight mb-3 text-slate-900 dark:text-[#f0f0ff]">

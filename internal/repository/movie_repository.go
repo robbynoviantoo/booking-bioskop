@@ -16,7 +16,7 @@ func NewMovieRepository(db *sql.DB) *MovieRepository {
 }
 
 func (r *MovieRepository) FindAll(ctx context.Context) ([]model.Movie, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, title FROM movies ORDER BY id`)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, title, COALESCE(img_url, '') FROM movies ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (r *MovieRepository) FindAll(ctx context.Context) ([]model.Movie, error) {
 	var movies []model.Movie
 	for rows.Next() {
 		var m model.Movie
-		if err := rows.Scan(&m.ID, &m.Title); err != nil {
+		if err := rows.Scan(&m.ID, &m.Title, &m.ImgURL); err != nil {
 			return nil, err
 		}
 		movies = append(movies, m)
@@ -35,16 +35,16 @@ func (r *MovieRepository) FindAll(ctx context.Context) ([]model.Movie, error) {
 
 func (r *MovieRepository) FindByID(ctx context.Context, id int64) (*model.Movie, error) {
 	m := &model.Movie{}
-	err := r.db.QueryRowContext(ctx, `SELECT id, title FROM movies WHERE id = ?`, id).
-		Scan(&m.ID, &m.Title)
+	err := r.db.QueryRowContext(ctx, `SELECT id, title, COALESCE(img_url, '') FROM movies WHERE id = ?`, id).
+		Scan(&m.ID, &m.Title, &m.ImgURL)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	return m, err
 }
 
-func (r *MovieRepository) Create(ctx context.Context, title string) (int64, error) {
-	res, err := r.db.ExecContext(ctx, `INSERT INTO movies (title) VALUES (?)`, title)
+func (r *MovieRepository) Create(ctx context.Context, title string, imgURL string) (int64, error) {
+	res, err := r.db.ExecContext(ctx, `INSERT INTO movies (title, img_url) VALUES (?, ?)`, title, imgURL)
 	if err != nil {
 		return 0, err
 	}

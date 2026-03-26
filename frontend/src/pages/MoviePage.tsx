@@ -67,19 +67,30 @@ export default function MoviePage() {
         </Link>
 
         {/* Movie Header */}
-        <div className="bg-white dark:bg-[#16161f] border border-black/5 dark:border-white/10 rounded-2xl p-6 shadow-md dark:shadow-none flex items-center gap-5 mb-6">
-          <div className="w-[72px] h-[72px] shrink-0 rounded-xl flex items-center justify-center border bg-violet-600/10 border-violet-600/30">
-            <Film
-              size={40}
-              className="opacity-60 text-violet-600 dark:text-violet-400"
-            />
-          </div>
-          <div>
-            <h1 className="text-[1.7rem] font-extrabold tracking-tight text-slate-900 dark:text-[#f0f0ff]">
+        <div className="bg-white dark:bg-[#16161f] border border-black/5 dark:border-white/10 rounded-2xl p-6 shadow-md dark:shadow-none flex items-center gap-6 mb-8 overflow-hidden relative">
+          {movie.img_url ? (
+            <div className="w-[100px] h-[140px] shrink-0 rounded-xl overflow-hidden border border-black/5 dark:border-white/10 shadow-sm">
+              <img
+                src={`http://localhost:8080${movie.img_url}`}
+                alt={movie.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-[72px] h-[72px] shrink-0 rounded-xl flex items-center justify-center border bg-violet-600/10 border-violet-600/30">
+              <Film
+                size={40}
+                className="opacity-60 text-violet-600 dark:text-violet-400"
+              />
+            </div>
+          )}
+          <div className="flex-1">
+            <h1 className="text-[1.8rem] sm:text-[2.2rem] font-extrabold tracking-tight text-slate-900 dark:text-[#f0f0ff] leading-tight">
               {movie.title}
             </h1>
-            <p className="text-[0.9rem] mt-1 text-slate-600 dark:text-[#9090aa]">
-              {showtimes.length} jadwal tersedia
+            <p className="text-[0.95rem] font-medium mt-2 text-slate-600 dark:text-[#9090aa] flex items-center gap-2">
+              <Clock size={16} className="text-violet-500" />
+              {showtimes.length} jadwal tersedia hari ini
             </p>
           </div>
         </div>

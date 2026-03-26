@@ -30,23 +30,23 @@ func main() {
 	config.InitRedis()
 
 	// ─── Repositories ───────────────────────────────────────────────────────────
-	userRepo     := repository.NewUserRepository(config.DB)
-	movieRepo    := repository.NewMovieRepository(config.DB)
+	userRepo := repository.NewUserRepository(config.DB)
+	movieRepo := repository.NewMovieRepository(config.DB)
 	showtimeRepo := repository.NewShowtimeRepository(config.DB)
-	seatRepo     := repository.NewSeatRepository(config.DB)
-	bookingRepo  := repository.NewBookingRepository(config.DB)
+	seatRepo := repository.NewSeatRepository(config.DB)
+	bookingRepo := repository.NewBookingRepository(config.DB)
 
 	// ─── Services ───────────────────────────────────────────────────────────────
-	hub         := ws.GlobalHub
-	userSvc     := service.NewUserService(userRepo)
-	movieSvc    := service.NewMovieService(movieRepo, showtimeRepo)
-	seatSvc     := service.NewSeatService(seatRepo, config.Redis, hub)
-	bookingSvc  := service.NewBookingService(bookingRepo, seatSvc, config.Redis, hub)
+	hub := ws.GlobalHub
+	userSvc := service.NewUserService(userRepo)
+	movieSvc := service.NewMovieService(movieRepo, showtimeRepo)
+	seatSvc := service.NewSeatService(seatRepo, config.Redis, hub)
+	bookingSvc := service.NewBookingService(bookingRepo, seatSvc, config.Redis, hub)
 
 	// ─── Handlers ───────────────────────────────────────────────────────────────
-	authH    := handler.NewAuthHandler(userSvc)
-	movieH   := handler.NewMovieHandler(movieSvc)
-	seatH    := handler.NewSeatHandler(seatSvc, movieSvc)
+	authH := handler.NewAuthHandler(userSvc)
+	movieH := handler.NewMovieHandler(movieSvc)
+	seatH := handler.NewSeatHandler(seatSvc, movieSvc)
 	bookingH := handler.NewBookingHandler(bookingSvc, movieSvc)
 
 	// ─── Fiber App ───────────────────────────────────────────────────────────────
