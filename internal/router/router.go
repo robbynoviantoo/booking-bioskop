@@ -39,6 +39,9 @@ func Setup(app *fiber.App, d Deps) {
 	auth := app.Group("/auth")
 	auth.Post("/register", d.AuthHandler.Register)
 	auth.Post("/login", d.AuthHandler.Login)
+	auth.Delete("/delete", middleware.AuthRequired(), middleware.AdminRequired(), d.AuthHandler.DeleteUser)
+	auth.Get("/:id", middleware.AuthRequired(), middleware.AdminRequired(), d.AuthHandler.GetUserByID)
+	auth.Get("/", middleware.AuthRequired(), middleware.AdminRequired(), d.AuthHandler.GetAllUsers)
 
 	// ── Movies (public read, protected write) ─────────────────────────────────
 	movies := app.Group("/movies")
@@ -52,6 +55,8 @@ func Setup(app *fiber.App, d Deps) {
 	showtimes.Get("/:id", d.MovieHandler.GetShowtimeByID)
 	showtimes.Get("/:id/seats", d.SeatHandler.GetSeats)
 	showtimes.Post("/", middleware.AuthRequired(), middleware.AdminRequired(), d.MovieHandler.CreateShowtime)
+	// ── Seat creation (protected, admin) ──────────────────────────────────────
+	showtimes.Post("/:id/seats", middleware.AuthRequired(), middleware.AdminRequired(), d.SeatHandler.CreateSeats)
 
 	// ── Seats (protected) ─────────────────────────────────────────────────────
 	seats := app.Group("/seats", middleware.AuthRequired())
@@ -64,6 +69,4 @@ func Setup(app *fiber.App, d Deps) {
 	bookings.Post("/", d.BookingHandler.Checkout)
 	bookings.Get("/:id", d.BookingHandler.GetByID)
 
-	// ── Seat creation (protected, admin) ──────────────────────────────────────
-	showtimes.Post("/:id/seats", middleware.AuthRequired(), middleware.AdminRequired(), d.SeatHandler.CreateSeats)
 }

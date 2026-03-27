@@ -86,3 +86,22 @@ func generateJWT(userID int64, role string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(config.App.JWTSecret))
 }
+
+func (s *UserService) DeleteUser(ctx context.Context, id int64) (int64, error) {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+	if user == nil {
+		return 0, errors.New("user not found")
+	}
+	return s.repo.DeleteUser(ctx, id)
+}
+
+func (s *UserService) GetUserByID(ctx context.Context, id int64) (*model.User, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
+func (s *UserService) GetAllUsers(ctx context.Context) ([]model.User, error) {
+	return s.repo.GetAllUsers(ctx)
+}
