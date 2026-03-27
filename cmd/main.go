@@ -5,6 +5,7 @@ import (
 
 	"booking-bioskop/internal/config"
 	"booking-bioskop/internal/handler"
+	"booking-bioskop/internal/middleware"
 	"booking-bioskop/internal/repository"
 	"booking-bioskop/internal/router"
 	"booking-bioskop/internal/service"
@@ -61,6 +62,7 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
+	app.Use(middleware.RateLimiter())
 
 	// Register all routes
 	router.Setup(app, router.Deps{

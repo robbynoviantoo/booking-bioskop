@@ -45,7 +45,7 @@ func Setup(app *fiber.App, d Deps) {
 
 	// ── Movies (public read, protected write) ─────────────────────────────────
 	movies := app.Group("/movies")
-	movies.Get("/", d.MovieHandler.GetAll)
+	movies.Get("/", d.MovieHandler.GetAll, middleware.RateLimiter())
 	movies.Get("/:id", d.MovieHandler.GetByID)
 	movies.Get("/:id/showtimes", d.MovieHandler.GetShowtimes)
 	movies.Post("/", middleware.AuthRequired(), middleware.AdminRequired(), d.MovieHandler.Create)
