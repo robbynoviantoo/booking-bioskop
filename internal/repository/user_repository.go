@@ -37,6 +37,17 @@ func (r *UserRepository) Create(ctx context.Context, user *model.User) (int64, e
 	return res.LastInsertId()
 }
 
+func (r *UserRepository) Update(ctx context.Context, user *model.User) (int64, error){
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE users SET name = ?, email = ?, password = ?, role = ? WHERE id = ?`,
+		user.Name, user.Email, user.Password, user.Role, user.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 func (r *UserRepository) FindByID(ctx context.Context, id int64) (*model.User, error) {
 	user := &model.User{}
 	row := r.db.QueryRowContext(ctx,

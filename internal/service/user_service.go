@@ -105,3 +105,7 @@ func (s *UserService) GetUserByID(ctx context.Context, id int64) (*model.User, e
 func (s *UserService) GetAllUsers(ctx context.Context) ([]model.User, error) {
 	return s.repo.GetAllUsers(ctx)
 }
+
+func (s *UserService) Update(ctx context.Context, user *model.User) (int64, error) {
+	return s.repo.Update(ctx, user)
+}
